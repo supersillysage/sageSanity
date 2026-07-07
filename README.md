@@ -48,3 +48,4 @@ when toggled on, sageSanity holds **E** for 2 seconds (interact with coffee mach
 ## credits
 
 built by **sage,** inspired by [dolphSol-Macro](https://github.com/BuilderDolphin/dolphSol-Macro) by BuilderDolphin
+good luck :3
