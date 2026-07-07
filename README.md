@@ -1,19 +1,19 @@
 # sageSanity v1
 
-auto sanity manager for **animal Hospital** on roblox. automatically drinks coffee every 3 minutes (aka cooldown time) so you never lose your sanity while sleepin
+auto sanity manager for **animal hospital** on roblox. automatically drinks coffee every 3 minutes (aka cooldown time) so you never lose your sanity while sleepin
 
 ---
 
 ## requirements
 
 - windows 10 or 11
-- [AutoHotkey v2](https://www.autohotkey.com) , make sure you download **v2**, not v1.1
+- [autohotkey v2](https://www.autohotkey.com) , make sure you download **v2**, not v1.1
 
 ---
 
 ## installation
 
-1. install autoHotkey v2 from [autohotkey.com](https://www.autohotkey.com)
+1. install autohotkey v2 from [autohotkey.com](https://www.autohotkey.com)
 2. download `sageSanity.ahk` from this repo
 3. right-click `sageSanity.ahk` → **run script**
 
@@ -52,4 +52,4 @@ when toggled on, sageSanity holds **E** for 2 seconds (interact with coffee mach
 
 built by **sage,** inspired by [dolphSol-Macro](https://github.com/BuilderDolphin/dolphSol-Macro) by BuilderDolphin
 
-good luck :3
+sweet dreams :3
