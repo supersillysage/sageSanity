@@ -35,7 +35,7 @@ auto sanity manager for **animal hospital** on roblox. automatically drinks coff
 
 when toggled on, sageSanity holds **E** for 2 seconds (interact with coffee machine), then clicks 3 times to drink. it waits 180 seconds for the machine cooldown to expire, then repeats forever.
 
-<img width="500" alt="sageSanity quick preview" src="https://github.com/user-attachments/assets/31402616-931c-4639-9458-9ed0f5be839c">
+<img width="500" alt="sageSanity quick preview" src="./preview.gif">
 
 
 ---
