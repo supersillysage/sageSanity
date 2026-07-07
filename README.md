@@ -7,7 +7,7 @@ auto sanity manager for **animal Hospital** on roblox. automatically drinks coff
 ## requirements
 
 - windows 10 or 11
-- [AutoHotkey v2](https://www.autohotkey.com) — make sure you download **v2**, not v1.1
+- [AutoHotkey v2](https://www.autohotkey.com) , make sure you download **v2**, not v1.1
 
 ---
 
