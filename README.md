@@ -25,7 +25,7 @@ auto sanity manager for **animal Hospital** on roblox. automatically drinks coff
 |-----|--------|
 | `F1` | toggle macro on/off |
 
-- press **F1** to start — the macro will drink coffee immediately, then every 180 seconds (cooldown time) automatically
+- press **F1** to start, the macro will drink coffee immediately, then every 180 seconds (cooldown time) automatically
 - a countdown tooltip shows how long until the next drink
 - press **F1** again to stop at any time
 
