@@ -5,50 +5,112 @@ configFile := A_ScriptDir "\config.ini"
 if !FileExist(configFile) {
     CreateConfig()
 }
+if GetPresetList().Length = 0 {
+    CreateConfig()
+}
 
-Machine := IniRead(configFile, "Settings", "Machine", "Main")
-CooldownMs := Number(IniRead(configFile, "Settings", "Cooldown", 180000))
-HoldE_Duration := Number(IniRead(configFile, "Settings", "HoldDuration", 2000))
-ClickCount := Number(IniRead(configFile, "Settings", "Clicks", 3))
-ClickGap := Number(IniRead(configFile, "Settings", "ClickGap", 1500))
+; ---------- load active settings ----------
+ActivePreset   := IniRead(configFile, "State", "ActivePreset", "Main")
+CooldownMs     := Number(IniRead(configFile, "Preset:" ActivePreset, "Cooldown", 180000))
+HoldE_Duration := Number(IniRead(configFile, "Preset:" ActivePreset, "HoldDuration", 2000))
+ClickCount     := Number(IniRead(configFile, "Preset:" ActivePreset, "Clicks", 3))
+ClickGap       := Number(IniRead(configFile, "Preset:" ActivePreset, "ClickGap", 1500))
 
-myGui := Gui()
-myGui.Title := "sageSanity"
+ToggleHotkey := IniRead(configFile, "State", "ToggleHotkey", "F1")
+TopHotkey    := IniRead(configFile, "State", "TopHotkey", "F2")
 
-statusText := myGui.AddText("w200", "Status: STOPPED")
-machineStatus := myGui.AddText("w200", "Machine: " Machine)
-timerStatus := myGui.AddText("w200", "Next Drink: Ready")
-drinkStatus := myGui.AddText("w200", "Drinks: 0")
-runtimeText := myGui.AddText("w200", "Runtime: 00:00:00")
+; ---------- gui ----------
+myGui := Gui("+Resize", "sageSanity")
+tabs := myGui.AddTab3("x10 y10 w480 h260", ["Main", "Presets", "Settings", "Credits"])
 
-myGui.AddText("w200", "Machine:")
-machineBox := myGui.AddDropDownList("w200", ["Main", "Barney"])
-machineBox.OnEvent("Change", ChangeMachine)
+; ===== MAIN TAB (left: status, right: controls) =====
+tabs.UseTab(1)
+statusText    := myGui.AddText("x30 y50 w220", "Status: STOPPED")
+presetText    := myGui.AddText("x30 y74 w220", "Preset: " ActivePreset)
+drinkStatus   := myGui.AddText("x30 y98 w220", "Drinks: 0")
+runtimeText   := myGui.AddText("x30 y122 w220", "Runtime: 00:00:00")
+timerStatus   := myGui.AddText("x30 y146 w220", "Next Drink: Ready")
 
-myGui.AddText("w200", "Cooldown:")
-cooldownInput := myGui.AddEdit("w200", CooldownMs)
+myGui.AddText("x270 y50 w200", "Quick Switch Preset:")
+mainPresetBox := myGui.AddDropDownList("x270 y72 w200", GetPresetList())
+if GetPresetList().Length > 0 {
+    try mainPresetBox.Choose(ActivePreset)
+    catch
+        mainPresetBox.Choose(1)
+}
+mainPresetBox.OnEvent("Change", (*) => QuickSwitchPreset(mainPresetBox.Text))
 
-myGui.AddText("w200", "Hold Duration:")
-holdInput := myGui.AddEdit("w200", HoldE_Duration)
-
-myGui.AddText("w200", "Clicks:")
-clickInput := myGui.AddEdit("w200", ClickCount)
-
-myGui.AddText("w200", "Click Gap:")
-gapInput := myGui.AddEdit("w200", ClickGap)
-
-saveButton := myGui.AddButton("w90", "Save Settings")
-saveButton.OnEvent("Click", SaveSettings)
-
-startButton := myGui.AddButton("w90", "Start")
-stopButton := myGui.AddButton("w90 x+10", "Stop")
-
+startButton := myGui.AddButton("x270 y110 w200", "Start")
+stopButton  := myGui.AddButton("x270 y142 w200", "Stop")
 startButton.OnEvent("Click", (*) => StartFromGUI())
 stopButton.OnEvent("Click", (*) => StopMacro())
+
+; ===== PRESETS TAB (left: list, right: actions) =====
+tabs.UseTab(2)
+myGui.AddText("x30 y50 w220", "Saved Presets:")
+presetListBox := myGui.AddListBox("x30 y72 w220 h160", GetPresetList())
+
+loadPresetBtn   := myGui.AddButton("x270 y72 w200", "Load Preset")
+deletePresetBtn := myGui.AddButton("x270 y104 w200", "Delete Preset")
+loadPresetBtn.OnEvent("Click", (*) => LoadSelectedPreset())
+deletePresetBtn.OnEvent("Click", (*) => DeleteSelectedPreset())
+
+savePresetBtn := myGui.AddButton("x270 y144 w200 h40", "Save Current Settings As New Preset")
+savePresetBtn.OnEvent("Click", (*) => SaveAsNewPreset())
+
+renamePresetBtn := myGui.AddButton("x270 y194 w200", "Rename Preset")
+renamePresetBtn.OnEvent("Click", (*) => RenameSelectedPreset())
+
+; ===== SETTINGS TAB (left column / right column) =====
+tabs.UseTab(3)
+myGui.AddText("x30 y50 w200", "Cooldown (ms):")
+cooldownInput := myGui.AddEdit("x30 y72 w200", CooldownMs)
+
+myGui.AddText("x30 y104 w200", "Clicks:")
+clickInput := myGui.AddEdit("x30 y126 w200", ClickCount)
+
+myGui.AddText("x270 y50 w200", "Hold Duration (ms):")
+holdInput := myGui.AddEdit("x270 y72 w200", HoldE_Duration)
+
+myGui.AddText("x270 y104 w200", "Click Gap (ms):")
+gapInput := myGui.AddEdit("x270 y126 w200", ClickGap)
+
+myGui.AddText("x30 y158 w200", "Toggle Hotkey:")
+toggleHotkeyCtrl := myGui.AddHotkey("x30 y180 w200", ToggleHotkey)
+
+myGui.AddText("x270 y158 w200", "Always-On-Top Hotkey:")
+topHotkeyCtrl := myGui.AddHotkey("x270 y180 w200", TopHotkey)
+
+saveSettingsBtn := myGui.AddButton("x30 y220 w440", "Save To Current Preset")
+saveSettingsBtn.OnEvent("Click", (*) => SaveSettings())
+
+; ===== CREDITS TAB (left: creator, right: inspiration, bottom: other) =====
+tabs.UseTab(4)
+
+myGui.AddText("x30 y50 w200", "The Creator")
+; sage
+if FileExist(A_ScriptDir "\assets\sagepfp.jpg")
+    myGui.AddPicture("x30 y74 w64 h64", A_ScriptDir "\assets\sagepfp.jpg")
+myGui.AddText("x110 y74 w130", "sage (notsupersillysage)")
+myGui.AddText("x110 y96 w130", "`"made this for fun lol`"")
+
+myGui.AddText("x270 y50 w200", "The Inspiration")
+; dolphSol inspiration
+if FileExist(A_ScriptDir "\assets\dolphpfp.png")
+    myGui.AddPicture("x270 y74 w64 h64", A_ScriptDir "\assets\dolphpfp.png")
+myGui.AddText("x350 y74 w130", "BuilderDolphin")
+myGui.AddText("x350 y96 w130 h64", "The creator of DolphSol, a macro for Sol's RNG, heavily inspired this project and helped with ideas overall.")
+
+myGui.AddText("x30 y180 w440", "other:")
+myGui.AddText("x30 y202 w440", "ask me anything on discord: @notsupersillysage")
+githubLink := myGui.AddLink("x30 y224 w440", '<a href="https://github.com/supersillysage/sageSanity">visit the github! (updates, readme, versions)</a>')
+
+tabs.UseTab()
 
 myGui.Show()
 myGui.OnEvent("Close", (*) => myGui.Hide())
 
+; ---------- tray ----------
 A_TrayMenu.Delete()
 A_TrayMenu.Add("Open", (*) => myGui.Show())
 A_TrayMenu.Add("Start", (*) => StartFromGUI())
@@ -58,6 +120,7 @@ A_TrayMenu.Add("Reload Script", (*) => Reload())
 A_TrayMenu.Add("Exit", (*) => ExitApp())
 A_TrayMenu.Default := "Open"
 
+; ---------- state ----------
 guiTop         := false
 running        := false
 forceStop      := false
@@ -66,16 +129,36 @@ drinkCount     := 0
 clicksDone     := 0
 runtimeSeconds := 0
 
+; ---------- config helpers ----------
 CreateConfig() {
     global configFile
-    IniWrite("Main", configFile, "Settings", "Machine")
-    IniWrite(180000, configFile, "Settings", "Cooldown")
-    IniWrite(2000, configFile, "Settings", "HoldDuration")
-    IniWrite(3, configFile, "Settings", "Clicks")
-    IniWrite(1500, configFile, "Settings", "ClickGap")
+    IniWrite("Main", configFile, "State", "ActivePreset")
+    IniWrite("F1",   configFile, "State", "ToggleHotkey")
+    IniWrite("F2",   configFile, "State", "TopHotkey")
+    IniWrite(180000, configFile, "Preset:Main", "Cooldown")
+    IniWrite(2000,   configFile, "Preset:Main", "HoldDuration")
+    IniWrite(3,      configFile, "Preset:Main", "Clicks")
+    IniWrite(1500,   configFile, "Preset:Main", "ClickGap")
+
+    IniWrite(300000, configFile, "Preset:Barney", "Cooldown")
+    IniWrite(2000,   configFile, "Preset:Barney", "HoldDuration")
+    IniWrite(3,      configFile, "Preset:Barney", "Clicks")
+    IniWrite(1500,   configFile, "Preset:Barney", "ClickGap")
 }
 
-F1:: {
+GetPresetList() {
+    global configFile
+    sections := IniRead(configFile)
+    presets := []
+    Loop Parse, sections, "`n" {
+        if InStr(A_LoopField, "Preset:") = 1
+            presets.Push(SubStr(A_LoopField, 8))
+    }
+    return presets
+}
+
+; ---------- hotkeys (dynamic so they can be remapped from Settings) ----------
+ToggleMacroHandler(*) {
     global running
     if running
         StopMacro()
@@ -83,17 +166,21 @@ F1:: {
         StartMacro()
 }
 
-F2:: {
+ToggleAlwaysOnTopHandler(*) {
     global guiTop, myGui
     guiTop := !guiTop
     if guiTop {
-        myGui.Show("x" A_ScreenWidth - 300 " y50")
+        myGui.Show("x" A_ScreenWidth - 520 " y50")
         WinSetAlwaysOnTop(true, "sageSanity")
     } else {
         WinSetAlwaysOnTop(false, "sageSanity")
     }
 }
 
+Hotkey(ToggleHotkey, ToggleMacroHandler)
+Hotkey(TopHotkey, ToggleAlwaysOnTopHandler)
+
+; ---------- focus handling ----------
 FocusRoblox() {
     if WinActive("ahk_exe RobloxPlayerBeta.exe")
         return
@@ -103,13 +190,14 @@ FocusRoblox() {
     }
 }
 
+; ---------- start / stop ----------
 StartMacro() {
-    global running, forceStop, statusText, machineStatus, runtimeSeconds
+    global running, forceStop, statusText, presetText, ActivePreset, runtimeSeconds
     forceStop := false
     running := true
     runtimeSeconds := 0
     statusText.Text := "Status: RUNNING"
-    machineStatus.Text := "Machine: " Machine
+    presetText.Text := "Preset: " ActivePreset
     ToolTip("sageSanity: RUNNING`nF1 to stop")
     SetTimer(() => ToolTip(), -1500)
     SetTimer(RuntimeTick, 1000)
@@ -118,12 +206,12 @@ StartMacro() {
 }
 
 StartFromGUI() {
-    global running, forceStop, statusText, machineStatus, guiTop, myGui, runtimeSeconds
+    global running, forceStop, statusText, presetText, ActivePreset, guiTop, myGui, runtimeSeconds
     forceStop := false
     running := true
     runtimeSeconds := 0
     statusText.Text := "Status: RUNNING"
-    machineStatus.Text := "Machine: " Machine
+    presetText.Text := "Preset: " ActivePreset
     ToolTip("sageSanity: RUNNING`nF1 to stop")
     SetTimer(() => ToolTip(), -1500)
     SetTimer(RuntimeTick, 1000)
@@ -171,6 +259,7 @@ StopMacro() {
     SetTimer(() => ToolTip(), -1500)
 }
 
+; ---------- timers ----------
 RuntimeTick() {
     global runtimeSeconds, running, runtimeText
     if !running {
@@ -178,10 +267,7 @@ RuntimeTick() {
         return
     }
     runtimeSeconds++
-    h := runtimeSeconds // 3600
-    m := Mod(runtimeSeconds, 3600) // 60
-    s := Mod(runtimeSeconds, 60)
-    runtimeText.Text := "Runtime: " Format("{:02}", h) ":" Format("{:02}", m) ":" Format("{:02}", s)
+    runtimeText.Text := "Runtime: " FormatHMS(runtimeSeconds)
 }
 
 Step_HoldE() {
@@ -246,21 +332,147 @@ CooldownTick() {
     }
 }
 
-ChangeMachine(*) {
-    global Machine, CooldownMs, machineBox, configFile, machineStatus
-    Machine := machineBox.Text
-    if Machine = "Main"
-        CooldownMs := 180000
-    else if Machine = "Barney"
-        CooldownMs := 300000
-    machineStatus.Text := "Machine: " Machine
-    IniWrite(Machine, configFile, "Settings", "Machine")
-    IniWrite(CooldownMs, configFile, "Settings", "Cooldown")
+; ---------- time formatting (v1.3: M:SS / H:MM:SS instead of raw seconds) ----------
+FormatMS(totalSeconds) {
+    m := totalSeconds // 60
+    s := Mod(totalSeconds, 60)
+    return m ":" Format("{:02}", s)
 }
 
+FormatHMS(totalSeconds) {
+    h := totalSeconds // 3600
+    m := Mod(totalSeconds, 3600) // 60
+    s := Mod(totalSeconds, 60)
+    return Format("{:02}", h) ":" Format("{:02}", m) ":" Format("{:02}", s)
+}
+
+; ---------- presets ----------
+QuickSwitchPreset(name) {
+    global ActivePreset, configFile
+    ApplyPreset(name)
+    IniWrite(name, configFile, "State", "ActivePreset")
+}
+
+LoadSelectedPreset() {
+    global presetListBox, mainPresetBox, configFile
+    name := presetListBox.Text
+    if name = ""
+        return
+    ApplyPreset(name)
+    IniWrite(name, configFile, "State", "ActivePreset")
+    mainPresetBox.Delete()
+    mainPresetBox.Add(GetPresetList())
+    mainPresetBox.Choose(name)
+    ToolTip("sageSanity: Loaded preset " name)
+    SetTimer(() => ToolTip(), -1500)
+}
+
+ApplyPreset(name) {
+    global configFile, ActivePreset, CooldownMs, HoldE_Duration, ClickCount, ClickGap
+    global cooldownInput, holdInput, clickInput, gapInput, presetText
+
+    ActivePreset   := name
+    CooldownMs     := Number(IniRead(configFile, "Preset:" name, "Cooldown", 180000))
+    HoldE_Duration := Number(IniRead(configFile, "Preset:" name, "HoldDuration", 2000))
+    ClickCount     := Number(IniRead(configFile, "Preset:" name, "Clicks", 3))
+    ClickGap       := Number(IniRead(configFile, "Preset:" name, "ClickGap", 1500))
+
+    cooldownInput.Value := CooldownMs
+    holdInput.Value     := HoldE_Duration
+    clickInput.Value    := ClickCount
+    gapInput.Value       := ClickGap
+    presetText.Text      := "Preset: " ActivePreset
+}
+
+SaveAsNewPreset() {
+    global configFile, cooldownInput, holdInput, clickInput, gapInput
+    global presetListBox, mainPresetBox
+
+    result := InputBox("Enter a name for this preset:", "sageSanity - New Preset")
+    if result.Result != "OK" || Trim(result.Value) = ""
+        return
+    name := Trim(result.Value)
+
+    IniWrite(cooldownInput.Value, configFile, "Preset:" name, "Cooldown")
+    IniWrite(holdInput.Value,     configFile, "Preset:" name, "HoldDuration")
+    IniWrite(clickInput.Value,    configFile, "Preset:" name, "Clicks")
+    IniWrite(gapInput.Value,      configFile, "Preset:" name, "ClickGap")
+
+    presetListBox.Delete()
+    presetListBox.Add(GetPresetList())
+    mainPresetBox.Delete()
+    mainPresetBox.Add(GetPresetList())
+
+    ToolTip("sageSanity: Saved preset " name)
+    SetTimer(() => ToolTip(), -1500)
+}
+
+DeleteSelectedPreset() {
+    global presetListBox, mainPresetBox, configFile, ActivePreset
+
+    name := presetListBox.Text
+    if name = ""
+        return
+    if name = ActivePreset {
+        ToolTip("sageSanity: Can't delete the active preset")
+        SetTimer(() => ToolTip(), -1500)
+        return
+    }
+    IniDelete(configFile, "Preset:" name)
+    presetListBox.Delete()
+    presetListBox.Add(GetPresetList())
+    mainPresetBox.Delete()
+    mainPresetBox.Add(GetPresetList())
+    mainPresetBox.Choose(ActivePreset)
+}
+
+RenameSelectedPreset() {
+    global presetListBox, mainPresetBox, configFile, ActivePreset, presetText
+
+    name := presetListBox.Text
+    if name = ""
+        return
+
+    result := InputBox("Enter a new name for `"" name "`":", "sageSanity - Rename Preset", , name)
+    if result.Result != "OK"
+        return
+    newName := Trim(result.Value)
+    if newName = "" || newName = name
+        return
+
+    ; copy old values to the new name, then remove the old section
+    cd := IniRead(configFile, "Preset:" name, "Cooldown")
+    hd := IniRead(configFile, "Preset:" name, "HoldDuration")
+    ck := IniRead(configFile, "Preset:" name, "Clicks")
+    cg := IniRead(configFile, "Preset:" name, "ClickGap")
+
+    IniWrite(cd, configFile, "Preset:" newName, "Cooldown")
+    IniWrite(hd, configFile, "Preset:" newName, "HoldDuration")
+    IniWrite(ck, configFile, "Preset:" newName, "Clicks")
+    IniWrite(cg, configFile, "Preset:" newName, "ClickGap")
+    IniDelete(configFile, "Preset:" name)
+
+    if ActivePreset = name {
+        ActivePreset := newName
+        IniWrite(ActivePreset, configFile, "State", "ActivePreset")
+        presetText.Text := "Preset: " ActivePreset
+    }
+
+    presetListBox.Delete()
+    presetListBox.Add(GetPresetList())
+    mainPresetBox.Delete()
+    mainPresetBox.Add(GetPresetList())
+    try mainPresetBox.Choose(ActivePreset)
+
+    ToolTip("sageSanity: Renamed to " newName)
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; ---------- settings ----------
 SaveSettings(*) {
-    global configFile, CooldownMs, HoldE_Duration, ClickCount, ClickGap
+    global configFile, CooldownMs, HoldE_Duration, ClickCount, ClickGap, ActivePreset
     global cooldownInput, holdInput, clickInput, gapInput
+    global ToggleHotkey, TopHotkey, toggleHotkeyCtrl, topHotkeyCtrl
 
     if !IsNumber(cooldownInput.Value) || !IsNumber(holdInput.Value)
     || !IsNumber(clickInput.Value) || !IsNumber(gapInput.Value) {
@@ -285,11 +497,29 @@ SaveSettings(*) {
     ClickCount     := newClicks
     ClickGap       := newGap
 
-    IniWrite(CooldownMs,     configFile, "Settings", "Cooldown")
-    IniWrite(HoldE_Duration, configFile, "Settings", "HoldDuration")
-    IniWrite(ClickCount,     configFile, "Settings", "Clicks")
-    IniWrite(ClickGap,       configFile, "Settings", "ClickGap")
+    IniWrite(CooldownMs,     configFile, "Preset:" ActivePreset, "Cooldown")
+    IniWrite(HoldE_Duration, configFile, "Preset:" ActivePreset, "HoldDuration")
+    IniWrite(ClickCount,     configFile, "Preset:" ActivePreset, "Clicks")
+    IniWrite(ClickGap,       configFile, "Preset:" ActivePreset, "ClickGap")
 
-    ToolTip("sageSanity: Settings Saved")
+    ; apply hotkey changes if the user remapped either one
+    newToggle := toggleHotkeyCtrl.Value
+    newTop     := topHotkeyCtrl.Value
+
+    if newToggle != "" && newToggle != ToggleHotkey {
+        try Hotkey(ToggleHotkey, "Off")
+        ToggleHotkey := newToggle
+        Hotkey(ToggleHotkey, ToggleMacroHandler)
+        IniWrite(ToggleHotkey, configFile, "State", "ToggleHotkey")
+    }
+
+    if newTop != "" && newTop != TopHotkey {
+        try Hotkey(TopHotkey, "Off")
+        TopHotkey := newTop
+        Hotkey(TopHotkey, ToggleAlwaysOnTopHandler)
+        IniWrite(TopHotkey, configFile, "State", "TopHotkey")
+    }
+
+    ToolTip("sageSanity: Settings Saved to " ActivePreset)
     SetTimer(() => ToolTip(), -1500)
 }
