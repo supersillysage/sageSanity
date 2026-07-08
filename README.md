@@ -35,6 +35,7 @@ auto sanity manager for **animal hospital** on roblox. automatically drinks coff
 | key | action |
 |-----|--------|
 | `F1` | toggle macro on/off |
+| `F2` | toggle always-on-top |
 
 - press **F1** to start, the macro will drink coffee immediately, then every selected machine cooldown automatically
 - a countdown tooltip shows how long until the next drink
@@ -46,10 +47,11 @@ auto sanity manager for **animal hospital** on roblox. automatically drinks coff
 ## gui
 
 the gui allows you to:
-
 - start and stop the macro
 - select your coffee machine
-- manage settings without editing the script
+- edit cooldown, hold duration, click count, and click gap live
+- see runtime, drink count, and time until next drink
+- minimize to tray and control the macro from the tray menu (open/start/stop/exit)
 
 ---
 
@@ -72,7 +74,7 @@ ClickGap=1500
 
 ## how it works
 
-when toggled on, sageSanity holds **E** for 2 seconds (interact with coffee machine), then clicks 3 times to drink. it waits for the selected machine cooldown to expire, then repeats forever.
+when toggled on, sageSanity holds **E** for a set duration (default 2 seconds) to interact with the coffee machine, then clicks a set number of times (default 3) to drink. these values, along with the cooldown, can be changed in the gui or config.ini. it waits for the selected machine cooldown to expire, then repeats forever.
 
 <img width="500" alt="RobloxPlayerBeta_KjBdXczbno" src="./assets/RobloxPlayerBeta_KjBdXczbno.gif">
 
@@ -80,9 +82,9 @@ when toggled on, sageSanity holds **E** for 2 seconds (interact with coffee mach
 
 ## notes
 
-* make sure you're on top of the coffee machine when you start the macro, or reposition yourself before each drink cycle
-* the macro does not move your character, you need to already be in range of the machine
-* works while the game window is in the background as long as roblox is running
+- make sure you're on top of the coffee machine when you start the macro, or reposition yourself before each drink cycle
+- the macro does not move your character, you need to already be in range of the machine
+- roblox must already be open before starting the macro
 
 ---
 
