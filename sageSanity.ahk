@@ -39,9 +39,12 @@ F1:: {
 StartMacro() {
     global running, statusText
     WinActivate("ahk_exe RobloxPlayerBeta.exe")
-    Sleep(500)
-    Click()
-    Sleep(200)
+	Sleep(500)
+	MouseGetPos(&oldX, &oldY)
+	MouseMove(A_ScreenWidth - 50, A_ScreenHeight - 50, 0)
+	Click()
+	MouseMove(oldX, oldY, 0)
+	Sleep(200)
     running := true
     statusText.Text := "Status: RUNNING"
     ToolTip("sageSanity: RUNNING`nF1 to stop")
