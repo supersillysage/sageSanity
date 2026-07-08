@@ -54,6 +54,7 @@ A_TrayMenu.Add("Open", (*) => myGui.Show())
 A_TrayMenu.Add("Start", (*) => StartFromGUI())
 A_TrayMenu.Add("Stop", (*) => StopMacro())
 A_TrayMenu.Add()
+A_TrayMenu.Add("Reload Script", (*) => Reload())
 A_TrayMenu.Add("Exit", (*) => ExitApp())
 A_TrayMenu.Default := "Open"
 
