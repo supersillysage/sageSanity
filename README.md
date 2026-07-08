@@ -100,4 +100,4 @@ when toggled on, sageSanity holds **E** for a set duration (default 2 seconds) t
 
 built by **sage,** inspired by [dolphSol-Macro](https://github.com/BuilderDolphin/dolphSol-Macro) by BuilderDolphin
 
-sweet dreams :3
+sweet dreams! :3
