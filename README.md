@@ -76,7 +76,8 @@ ClickGap=1500
 
 when toggled on, sageSanity holds **E** for a set duration (default 2 seconds) to interact with the coffee machine, then clicks a set number of times (default 3) to drink. these values, along with the cooldown, can be changed in the gui or config.ini. it waits for the selected machine cooldown to expire, then repeats forever.
 
-<img width="500" alt="RobloxPlayerBeta_KjBdXczbno" src="./assets/RobloxPlayerBeta_KjBdXczbno.gif">
+<img width="500" alt="RobloxPlayerBeta_Cd7HhUpb1Q" src="https://github.com/user-attachments/assets/5aa759ec-23d7-4d8c-afe2-ded42aaff85c" />
+
 
 ---
 
