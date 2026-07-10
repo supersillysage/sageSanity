@@ -1,6 +1,57 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
+CurrentVersion := "1.4"
+
+; ---------- hover tooltips (must init before any GUI controls register tips) ----------
+CoordMode("Mouse", "Screen")
+CoordMode("ToolTip", "Screen")
+HoverTips := Map()
+
+RegisterHoverTip(ctrl, text) {
+    global HoverTips
+    HoverTips[ctrl.Hwnd] := text
+}
+
+lastHoverHwnd := 0
+CheckHover() {
+    global HoverTips, lastHoverHwnd
+    MouseGetPos(&mx, &my, &winHwnd, &ctrlHwnd, 2)
+    if ctrlHwnd = lastHoverHwnd
+        return
+    lastHoverHwnd := ctrlHwnd
+    if HoverTips.Has(ctrlHwnd)
+        ToolTip(HoverTips[ctrlHwnd], mx + 16, my + 16, 2)
+    else
+        ToolTip(,,, 2)
+}
+
+; ---------- error handling / logging ----------
+OnError(GlobalErrorHandler)
+
+GlobalErrorHandler(err, mode) {
+    crashFile := GetNextCrashLogPath()
+    try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " ERROR: " err.Message " (in " err.What ", line " err.Line ")`n", crashFile)
+    try MsgBox("sageSanity ran into a problem and had to stop that action.`n`n"
+        . err.Message
+        . "`n`nDetails were saved to " crashFile ".", "sageSanity - Error", "Icon!")
+    return true
+}
+
+GetNextCrashLogPath() {
+    n := 1
+    Loop {
+        path := A_ScriptDir "\sageSanity-crashlog-" n ".log"
+        if !FileExist(path)
+            return path
+        n++
+    }
+}
+
+Log(msg) {
+    try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " - " msg "`n", A_ScriptDir "\sageSanity.log")
+}
+
 configFile := A_ScriptDir "\config.ini"
 if !FileExist(configFile) {
     CreateConfig()
@@ -20,8 +71,8 @@ ToggleHotkey := IniRead(configFile, "State", "ToggleHotkey", "F1")
 TopHotkey    := IniRead(configFile, "State", "TopHotkey", "F2")
 
 ; ---------- gui ----------
-myGui := Gui("+Resize", "sageSanity")
-tabs := myGui.AddTab3("x10 y10 w480 h260", ["Main", "Presets", "Settings", "Credits"])
+myGui := Gui("+Resize", "sageSanity v" CurrentVersion)
+tabs := myGui.AddTab3("x10 y10 w480 h270", ["Main", "Presets", "Settings", "Credits", "About"])
 
 ; ===== MAIN TAB (left: status, right: controls) =====
 tabs.UseTab(1)
@@ -39,50 +90,68 @@ if GetPresetList().Length > 0 {
         mainPresetBox.Choose(1)
 }
 mainPresetBox.OnEvent("Change", (*) => QuickSwitchPreset(mainPresetBox.Text))
+RegisterHoverTip(mainPresetBox, "Switch the active preset immediately")
 
 startButton := myGui.AddButton("x270 y110 w200", "Start")
 stopButton  := myGui.AddButton("x270 y142 w200", "Stop")
 startButton.OnEvent("Click", (*) => StartFromGUI())
 stopButton.OnEvent("Click", (*) => StopMacro())
+RegisterHoverTip(startButton, "Starts the macro using the active preset")
+RegisterHoverTip(stopButton, "Stops the macro and releases any held keys")
 
 ; ===== PRESETS TAB (left: list, right: actions) =====
 tabs.UseTab(2)
 myGui.AddText("x30 y50 w220", "Saved Presets:")
 presetListBox := myGui.AddListBox("x30 y72 w220 h160", GetPresetList())
+RegisterHoverTip(presetListBox, "Your saved machine presets")
 
 loadPresetBtn   := myGui.AddButton("x270 y72 w200", "Load Preset")
 deletePresetBtn := myGui.AddButton("x270 y104 w200", "Delete Preset")
 loadPresetBtn.OnEvent("Click", (*) => LoadSelectedPreset())
 deletePresetBtn.OnEvent("Click", (*) => DeleteSelectedPreset())
+RegisterHoverTip(loadPresetBtn, "Load the selected preset as active")
+RegisterHoverTip(deletePresetBtn, "Delete the selected preset (can't delete the active one)")
 
 savePresetBtn := myGui.AddButton("x270 y144 w200 h40", "Save Current Settings As New Preset")
 savePresetBtn.OnEvent("Click", (*) => SaveAsNewPreset())
+RegisterHoverTip(savePresetBtn, "Save the values on the Settings tab as a new preset")
 
 renamePresetBtn := myGui.AddButton("x270 y194 w200", "Rename Preset")
 renamePresetBtn.OnEvent("Click", (*) => RenameSelectedPreset())
+RegisterHoverTip(renamePresetBtn, "Rename the selected preset")
 
 ; ===== SETTINGS TAB (left column / right column) =====
 tabs.UseTab(3)
 myGui.AddText("x30 y50 w200", "Cooldown (ms):")
 cooldownInput := myGui.AddEdit("x30 y72 w200", CooldownMs)
+RegisterHoverTip(cooldownInput, "Time between coffee drinks, in milliseconds (1000ms = 1s)")
 
 myGui.AddText("x30 y104 w200", "Clicks:")
 clickInput := myGui.AddEdit("x30 y126 w200", ClickCount)
+RegisterHoverTip(clickInput, "How many times to click to drink coffee")
 
 myGui.AddText("x270 y50 w200", "Hold Duration (ms):")
 holdInput := myGui.AddEdit("x270 y72 w200", HoldE_Duration)
+RegisterHoverTip(holdInput, "How long to hold E to interact with the machine, in milliseconds")
 
 myGui.AddText("x270 y104 w200", "Click Gap (ms):")
 gapInput := myGui.AddEdit("x270 y126 w200", ClickGap)
+RegisterHoverTip(gapInput, "Delay between each drink click, in milliseconds")
 
 myGui.AddText("x30 y158 w200", "Toggle Hotkey:")
 toggleHotkeyCtrl := myGui.AddHotkey("x30 y180 w200", ToggleHotkey)
+RegisterHoverTip(toggleHotkeyCtrl, "Key that starts/stops the macro")
 
 myGui.AddText("x270 y158 w200", "Always-On-Top Hotkey:")
 topHotkeyCtrl := myGui.AddHotkey("x270 y180 w200", TopHotkey)
+RegisterHoverTip(topHotkeyCtrl, "Key that toggles the window staying on top")
 
-saveSettingsBtn := myGui.AddButton("x30 y220 w440", "Save To Current Preset")
+saveSettingsBtn   := myGui.AddButton("x30 y220 w215", "Save To Current Preset")
+resetDefaultsBtn  := myGui.AddButton("x255 y220 w215", "Reset to Default")
 saveSettingsBtn.OnEvent("Click", (*) => SaveSettings())
+resetDefaultsBtn.OnEvent("Click", (*) => ResetToDefaults())
+RegisterHoverTip(saveSettingsBtn, "Save these values to the currently active preset")
+RegisterHoverTip(resetDefaultsBtn, "Reset these fields to sageSanity's original defaults (doesn't save until you click Save)")
 
 ; ===== CREDITS TAB (left: creator, right: inspiration, bottom: other) =====
 tabs.UseTab(4)
@@ -101,9 +170,26 @@ if FileExist(A_ScriptDir "\assets\dolphpfp.png")
 myGui.AddText("x350 y74 w130", "BuilderDolphin")
 myGui.AddText("x350 y96 w130 h64", "The creator of DolphSol, a macro for Sol's RNG, heavily inspired this project and helped with ideas overall.")
 
-myGui.AddText("x30 y180 w440", "other:")
-myGui.AddText("x30 y202 w440", "ask me anything on discord: @notsupersillysage")
-githubLink := myGui.AddLink("x30 y224 w440", '<a href="https://github.com/supersillysage/sageSanity">visit the github! (updates, readme, versions)</a>')
+; ===== ABOUT TAB (left: version/updates, right: other/links) =====
+tabs.UseTab(5)
+
+myGui.AddText("x30 y50 w200", "Version: v" CurrentVersion)
+updateStatusText := myGui.AddText("x30 y72 w200", "")
+checkUpdateBtn := myGui.AddButton("x30 y96 w200", "Check for Updates")
+checkUpdateBtn.OnEvent("Click", (*) => CheckForUpdates())
+RegisterHoverTip(checkUpdateBtn, "Checks GitHub for a newer release")
+
+myGui.AddText("x270 y50 w200", "Other")
+myGui.AddText("x270 y72 w200", "ask me anything on discord:")
+myGui.AddText("x270 y94 w200", "@notsupersillysage")
+
+if FileExist(A_ScriptDir "\assets\githublogo.jpg") {
+    githubLogoBtn := myGui.AddPicture("x270 y126 w48 h48", A_ScriptDir "\assets\githublogo.jpg")
+    githubLogoBtn.OnEvent("Click", (*) => Run("https://github.com/supersillysage/sageSanity"))
+    RegisterHoverTip(githubLogoBtn, "Visit the GitHub! (updates, readme, versions)")
+} else {
+    githubLink := myGui.AddLink("x270 y126 w200", '<a href="https://github.com/supersillysage/sageSanity">visit the github!</a>')
+}
 
 tabs.UseTab()
 
@@ -128,6 +214,8 @@ tickCount      := 0
 drinkCount     := 0
 clicksDone     := 0
 runtimeSeconds := 0
+
+SetTimer(CheckHover, 200)
 
 ; ---------- config helpers ----------
 CreateConfig() {
@@ -192,27 +280,42 @@ FocusRoblox() {
 
 ; ---------- start / stop ----------
 StartMacro() {
-    global running, forceStop, statusText, presetText, ActivePreset, runtimeSeconds
+    global running, forceStop, statusText, presetText, ActivePreset, runtimeSeconds, ToggleHotkey
+
+    if !WinExist("ahk_exe RobloxPlayerBeta.exe") {
+        MsgBox("sageSanity couldn't find Roblox running.`n`nPlease open Roblox and try again.", "sageSanity", "Icon!")
+        Log("Start blocked: Roblox not running")
+        return
+    }
+
     forceStop := false
     running := true
     runtimeSeconds := 0
     statusText.Text := "Status: RUNNING"
     presetText.Text := "Preset: " ActivePreset
-    ToolTip("sageSanity: RUNNING`nF1 to stop")
+    ToolTip("sageSanity: RUNNING`n" ToggleHotkey " to stop")
     SetTimer(() => ToolTip(), -1500)
     SetTimer(RuntimeTick, 1000)
     FocusRoblox()
     SetTimer(Step_HoldE, -50)
+    Log("Macro started (preset: " ActivePreset ")")
 }
 
 StartFromGUI() {
-    global running, forceStop, statusText, presetText, ActivePreset, guiTop, myGui, runtimeSeconds
+    global running, forceStop, statusText, presetText, ActivePreset, guiTop, myGui, runtimeSeconds, ToggleHotkey
+
+    if !WinExist("ahk_exe RobloxPlayerBeta.exe") {
+        MsgBox("sageSanity couldn't find Roblox running.`n`nPlease open Roblox and try again.", "sageSanity", "Icon!")
+        Log("Start blocked: Roblox not running")
+        return
+    }
+
     forceStop := false
     running := true
     runtimeSeconds := 0
     statusText.Text := "Status: RUNNING"
     presetText.Text := "Preset: " ActivePreset
-    ToolTip("sageSanity: RUNNING`nF1 to stop")
+    ToolTip("sageSanity: RUNNING`n" ToggleHotkey " to stop")
     SetTimer(() => ToolTip(), -1500)
     SetTimer(RuntimeTick, 1000)
 
@@ -231,11 +334,13 @@ StartFromGUI() {
     }
 
     SetTimer(Step_HoldE, -1000)
+    Log("Macro started from GUI (preset: " ActivePreset ")")
 }
 
 StopMacro() {
-    global running, forceStop, statusText, timerStatus, tickCount, clicksDone, runtimeText
+    global running, forceStop, statusText, timerStatus, tickCount, clicksDone, runtimeText, drinkCount, runtimeSeconds
 
+    wasRunning := running
     forceStop := true
     running := false
     clicksDone := 0
@@ -257,6 +362,9 @@ StopMacro() {
     runtimeText.Text := "Runtime: 00:00:00"
     ToolTip("sageSanity: STOPPED")
     SetTimer(() => ToolTip(), -1500)
+
+    if wasRunning
+        Log("Macro stopped. Drinks: " drinkCount ", Runtime: " FormatHMS(runtimeSeconds))
 }
 
 ; ---------- timers ----------
@@ -469,6 +577,16 @@ RenameSelectedPreset() {
 }
 
 ; ---------- settings ----------
+ResetToDefaults() {
+    global cooldownInput, holdInput, clickInput, gapInput
+    cooldownInput.Value := 180000
+    holdInput.Value     := 2000
+    clickInput.Value    := 3
+    gapInput.Value       := 1500
+    ToolTip("sageSanity: Defaults loaded, click Save to apply")
+    SetTimer(() => ToolTip(), -1500)
+}
+
 SaveSettings(*) {
     global configFile, CooldownMs, HoldE_Duration, ClickCount, ClickGap, ActivePreset
     global cooldownInput, holdInput, clickInput, gapInput
@@ -522,4 +640,38 @@ SaveSettings(*) {
 
     ToolTip("sageSanity: Settings Saved to " ActivePreset)
     SetTimer(() => ToolTip(), -1500)
+}
+
+; ---------- version checker ----------
+CheckForUpdates() {
+    global CurrentVersion, updateStatusText
+
+    updateStatusText.Text := "checking..."
+
+    try {
+        req := ComObject("WinHttp.WinHttpRequest.5.1")
+        req.Open("GET", "https://api.github.com/repos/supersillysage/sageSanity/releases/latest", false)
+        req.SetRequestHeader("User-Agent", "sageSanity-updatecheck")
+        req.Send()
+
+        if req.Status != 200 {
+            updateStatusText.Text := "update check failed"
+            return
+        }
+
+        responseText := req.ResponseText
+        if !RegExMatch(responseText, '"tag_name"\s*:\s*"v?([\d\.]+[a-z]?)"', &m) {
+            updateStatusText.Text := "update check failed"
+            return
+        }
+
+        latestVersion := m[1]
+
+        if latestVersion = CurrentVersion
+            updateStatusText.Text := "you're up to date (v" CurrentVersion ")"
+        else
+            updateStatusText.Text := "v" latestVersion " available!"
+    } catch as err {
+        updateStatusText.Text := "update check failed"
+    }
 }
