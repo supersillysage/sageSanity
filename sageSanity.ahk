@@ -1,9 +1,9 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-CurrentVersion := "1.4"
+CurrentVersion := "1.4a"
 
-; ---------- hover tooltips (must init before any GUI controls register tips) ----------
+; ---------- hover tooltips (must init before any gui controls register tips) ----------
 CoordMode("Mouse", "Screen")
 CoordMode("ToolTip", "Screen")
 HoverTips := Map()
@@ -74,7 +74,7 @@ TopHotkey    := IniRead(configFile, "State", "TopHotkey", "F2")
 myGui := Gui("+Resize", "sageSanity v" CurrentVersion)
 tabs := myGui.AddTab3("x10 y10 w480 h270", ["Main", "Presets", "Settings", "Credits", "About"])
 
-; ===== MAIN TAB (left: status, right: controls) =====
+; ===== main tab (left: status, right: controls) =====
 tabs.UseTab(1)
 statusText    := myGui.AddText("x30 y50 w220", "Status: STOPPED")
 presetText    := myGui.AddText("x30 y74 w220", "Preset: " ActivePreset)
@@ -99,7 +99,7 @@ stopButton.OnEvent("Click", (*) => StopMacro())
 RegisterHoverTip(startButton, "Starts the macro using the active preset")
 RegisterHoverTip(stopButton, "Stops the macro and releases any held keys")
 
-; ===== PRESETS TAB (left: list, right: actions) =====
+; ===== presets tab (left: list, right: actions) =====
 tabs.UseTab(2)
 myGui.AddText("x30 y50 w220", "Saved Presets:")
 presetListBox := myGui.AddListBox("x30 y72 w220 h160", GetPresetList())
@@ -120,7 +120,7 @@ renamePresetBtn := myGui.AddButton("x270 y194 w200", "Rename Preset")
 renamePresetBtn.OnEvent("Click", (*) => RenameSelectedPreset())
 RegisterHoverTip(renamePresetBtn, "Rename the selected preset")
 
-; ===== SETTINGS TAB (left column / right column) =====
+; ===== settings tab (left column / right column) =====
 tabs.UseTab(3)
 myGui.AddText("x30 y50 w200", "Cooldown (ms):")
 cooldownInput := myGui.AddEdit("x30 y72 w200", CooldownMs)
@@ -153,7 +153,7 @@ resetDefaultsBtn.OnEvent("Click", (*) => ResetToDefaults())
 RegisterHoverTip(saveSettingsBtn, "Save these values to the currently active preset")
 RegisterHoverTip(resetDefaultsBtn, "Reset these fields to sageSanity's original defaults (doesn't save until you click Save)")
 
-; ===== CREDITS TAB (left: creator, right: inspiration, bottom: other) =====
+; ===== credits tab (left: creator, right: inspiration, bottom: other) =====
 tabs.UseTab(4)
 
 myGui.AddText("x30 y50 w200", "The Creator")
@@ -170,7 +170,7 @@ if FileExist(A_ScriptDir "\assets\dolphpfp.png")
 myGui.AddText("x350 y74 w130", "BuilderDolphin")
 myGui.AddText("x350 y96 w130 h64", "The creator of DolphSol, a macro for Sol's RNG, heavily inspired this project and helped with ideas overall.")
 
-; ===== ABOUT TAB (left: version/updates, right: other/links) =====
+; ===== about tab (left: version/updates, right: other/links) =====
 tabs.UseTab(5)
 
 myGui.AddText("x30 y50 w200", "Version: v" CurrentVersion)
@@ -245,7 +245,7 @@ GetPresetList() {
     return presets
 }
 
-; ---------- hotkeys (dynamic so they can be remapped from Settings) ----------
+; ---------- hotkeys (dynamic so they can be remapped from settings) ----------
 ToggleMacroHandler(*) {
     global running
     if running
@@ -382,6 +382,7 @@ Step_HoldE() {
     global running, forceStop
     if !running || forceStop
         return
+    FocusRoblox()
     Send("{e down}")
     SetTimer(Step_ReleaseE, -HoldE_Duration)
 }
