@@ -22,10 +22,8 @@ auto sanity manager for **animal hospital** on roblox. automatically drinks coff
 
 ## installation
 1. install autohotkey v2 from [autohotkey.com](https://www.autohotkey.com)
-2. download the latest release from the releases page
-3. make sure `config.ini` is in the same folder as `sageSanity.ahk`
-4. make sure the `assets` folder (with the profile pictures and github logo) is in the same folder as `sageSanity.ahk`, without it, the credits/about tabs will just skip the images
-5. right-click `sageSanity.ahk` → **run script**
+2. download the latest release zip from the releases page
+3. extract the zip and run `sageSanity.ahk`
 
 ---
 
@@ -78,7 +76,7 @@ HoldDuration=2000
 Clicks=3
 ClickGap=1500
 ```
-> ⚠️ only edit `config.ini` directly if you know what you're doing!! `ActivePreset` must match an existing `[Preset:Name]` section exactly, and hotkey values need to be valid AutoHotkey hotkey syntax (e.g. `F1`, `^F2`, `#q`). it's usually safer to change these from the gui instead.
+> ⚠️ editing `config.ini` directly is not recommended. if `ActivePreset` doesn't match an existing `[Preset:Name]` section exactly, the script will break. use the gui instead.
 
 ---
 
